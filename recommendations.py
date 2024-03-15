@@ -1,12 +1,12 @@
 import json
 import math
 
-def create_json(data):
+def create_users_json(data):
     user_item = {}
     
     with open(data, 'r') as file:
         for line in file:
-            user_id, item_id, rank, timeStamp = map(int, line.strip().split('\t'))
+            user_id, item_id, rank, timeStamp  = map(int, line.strip().split('\t'))
             
             if user_id in user_item:
                 user_item[user_id][item_id] = rank
@@ -15,6 +15,19 @@ def create_json(data):
     
     
     return user_item
+
+def create_item_json(data):
+    items = {}
+    
+    with open(data, 'r', encoding='ISO-8859-1') as file:
+        for line in file:
+            parts = line.strip().split('|')
+            item_id = int(parts[0])
+            name = parts[1]
+            
+            items[item_id] = name
+    
+    return items
 
 
 # (b) Implement the user-based collaborative filtering approach, using the Pearson correlation function for computing similarities between users
@@ -117,30 +130,48 @@ def compute_prediction(user_item_dict, a, item, similar_users):
              
      
 data_file = "ml-100k/u.data"
+item_file = "ml-100k/u.item"
 
-json_data = create_json(data_file)
+json_users = create_users_json(data_file)
+json_items = create_item_json(item_file)
+
 
 with open('user_item.json', 'w') as json_file:
-    json.dump(json_data, json_file, indent=4)
+    json.dump(json_users, json_file, indent=4)
     
 print(f"JSON created from file: {data_file}")
 
-# print(json.dumps(compute_user_similarities(json_data, 196), indent=4))
-# print(compute_prediction(json_data, 196, 1664))
-# print(json.dumps(compute_items_prediction(json_data, 196), indent=4))
-similarities = compute_user_similarities(json_data, 196)
+with open('item.json', 'w') as json_file:
+    json.dump(json_items, json_file, indent=4)
+    
+print(f"JSON created from file: {item_file}")
+
+# print(json.dumps(compute_user_similarities(json_users, 196), indent=4))
+# print(compute_prediction(json_users, 196, 1664))
+# print(json.dumps(compute_items_prediction(json_users, 196), indent=4))
+similarities = compute_user_similarities(json_users, 196)
 sort_sim = dict(sorted(similarities.items(), key=lambda item: item[1], reverse=True))
 top_sim = list(sort_sim.keys())[:30]
 top_ten_sim = list(sort_sim.keys())[:10]
 top_items = dict()
-top_items = compute_items_prediction(json_data, 196, top_sim)
+top_items = compute_items_prediction(json_users, 196, top_sim)
 sort_items = dict(sorted(top_items.items(), key=lambda item: item[1], reverse=True))
-top_ten_items = list(sort_items.keys())[:10]
+top_ten_items_id = list(sort_items.keys())[:10]
+top_ten_items_name = []
+
+for item_id in top_ten_items_id:
+    for id, name in json_items.items():
+        if(id == item_id):
+            top_ten_items_name.append(name)
+  
 print(top_ten_sim)
-print(top_ten_items)
+i = 1
+for name in top_ten_items_name:
+    print(f"{i}: {name}")
+    i += 1
 # for sim in top_ten_sim:
 #     print(f"{sim} : {top_ten_sim[sim]}")
-# items_predicted = compute_items_prediction(json_data, 196)
+# items_predicted = compute_items_prediction(json_users, 196)
 # sort_item = dict(sorted(items_predicted.items(), key=lambda item: item[1], reverse=True))
 # print(json.dumps(sort_item, indent=4))
 # top_ten_items = list(sort_item.keys())[:10]
