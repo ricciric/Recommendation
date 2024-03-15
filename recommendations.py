@@ -72,33 +72,33 @@ def compute_user_similarities(user_item_dict, user1):
             similarities[user2] = similarity
     return similarities
 
-                
-def compute_items_prediction(user_item_dict, user1):
+# compute the items prediction from a list of similar users                
+def compute_items_prediction(user_item_dict, user1, similar_users):
     pred = {}
     mean_1 = 0
     
     items_user1 = set(user_item_dict[user1].keys())
     mean_1 = math.fsum(user_item_dict[user1][item] for item in user_item_dict[user1].keys()) / len(user_item_dict[user1].keys())
     
-    for user2 in user_item_dict.keys():
+    for user2 in similar_users:
         items_user2 = set(user_item_dict[user2].keys())
         unrated_items = items_user2 - items_user1
         
         for item in unrated_items:
             if item not in pred.keys():
-                pred[item] = compute_prediction(user_item_dict, user1, item)
+                pred[item] = compute_prediction(user_item_dict, user1, item, similar_users)
     
     return pred
         
 
 # Compute the prediction for a single item
-def compute_prediction(user_item_dict, a, item):
+def compute_prediction(user_item_dict, a, item, similar_users):
     num = 0
     den = 0
     mean_a = math.fsum(user_item_dict[a][i] for i in user_item_dict[a].keys()) / len(user_item_dict[a].keys())
     set = 0
     
-    for b in user_item_dict.keys():
+    for b in similar_users:
         if item in user_item_dict[b]:
             set += 1
             mean_b = sum(user_item_dict[b][i] for i in user_item_dict[b].keys()) / len(user_item_dict[b].keys())
@@ -130,11 +130,14 @@ print(f"JSON created from file: {data_file}")
 # print(json.dumps(compute_items_prediction(json_data, 196), indent=4))
 similarities = compute_user_similarities(json_data, 196)
 sort_sim = dict(sorted(similarities.items(), key=lambda item: item[1], reverse=True))
+top_sim = list(sort_sim.keys())[:30]
 top_ten_sim = list(sort_sim.keys())[:10]
+top_items = dict()
+top_items = compute_items_prediction(json_data, 196, top_sim)
+sort_items = dict(sorted(top_items.items(), key=lambda item: item[1], reverse=True))
+top_ten_items = list(sort_items.keys())[:10]
 print(top_ten_sim)
-top_ten_items = dict()
-for sim in top_ten_sim:
-    top_ten_items[sim] = 
+print(top_ten_items)
 # for sim in top_ten_sim:
 #     print(f"{sim} : {top_ten_sim[sim]}")
 # items_predicted = compute_items_prediction(json_data, 196)
