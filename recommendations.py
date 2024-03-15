@@ -146,10 +146,8 @@ with open('item.json', 'w') as json_file:
     
 print(f"JSON created from file: {item_file}")
 
-# print(json.dumps(compute_user_similarities(json_users, 196), indent=4))
-# print(compute_prediction(json_users, 196, 1664))
-# print(json.dumps(compute_items_prediction(json_users, 196), indent=4))
-similarities = compute_user_similarities(json_users, 196)
+
+similarities = compute_user_similarities(json_users, 1)
 sort_sim = dict(sorted(similarities.items(), key=lambda item: item[1], reverse=True))
 top_sim = list(sort_sim.keys())[:30]
 top_ten_sim = list(sort_sim.keys())[:10]
