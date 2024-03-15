@@ -96,23 +96,26 @@ def compute_prediction(user_item_dict, a, item):
     num = 0
     den = 0
     mean_a = math.fsum(user_item_dict[a][i] for i in user_item_dict[a].keys()) / len(user_item_dict[a].keys())
+    set = 0
     
     for b in user_item_dict.keys():
         if item in user_item_dict[b]:
-            mean_b = math.fsum(user_item_dict[b][i] for i in user_item_dict[b].keys()) / len(user_item_dict[b].keys())
+            set += 1
+            mean_b = sum(user_item_dict[b][i] for i in user_item_dict[b].keys()) / len(user_item_dict[b].keys())
             similarity = compute_similarity(user_item_dict, a, b)
-            num += similarity * (user_item_dict[b][item] - mean_b)
+            num += (similarity * (user_item_dict[b][item] - mean_b))
             den += similarity
     
     if den == 0:
         return mean_a
       
     else:
-        return mean_a + (num/den)        
+        prediction = mean_a + (num/den)     
+    prediction = min(5, max(1, prediction))
+    
+    return prediction   
              
-# def top_ten(user_item_dict, user):
-             
-
+     
 data_file = "ml-100k/u.data"
 
 json_data = create_json(data_file)
@@ -127,12 +130,19 @@ print(f"JSON created from file: {data_file}")
 # print(json.dumps(compute_items_prediction(json_data, 196), indent=4))
 similarities = compute_user_similarities(json_data, 196)
 sort_sim = dict(sorted(similarities.items(), key=lambda item: item[1], reverse=True))
-items_predicted = compute_items_prediction(json_data, 196)
-sort_item = dict(sorted(items_predicted.items(), key=lambda item: item[1], reverse=True))
+top_ten_sim = list(sort_sim.keys())[:10]
+print(top_ten_sim)
+top_ten_items = dict()
+for sim in top_ten_sim:
+    top_ten_items[sim] = 
+# for sim in top_ten_sim:
+#     print(f"{sim} : {top_ten_sim[sim]}")
+# items_predicted = compute_items_prediction(json_data, 196)
+# sort_item = dict(sorted(items_predicted.items(), key=lambda item: item[1], reverse=True))
 # print(json.dumps(sort_item, indent=4))
-top_ten_items = list(sort_item.keys())[:10]
-for item in top_ten_items:
-    print(f"{item} : {sort_item[item]}")
+# top_ten_items = list(sort_item.keys())[:10]
+# for item in top_ten_items:
+#     print(f"{item} : {sort_item[item]}")
     
 
  
