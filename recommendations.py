@@ -1,6 +1,7 @@
 import json
 import math
 
+'''Utility function for creating a json file for the users ratings'''
 def create_users_json(data):
     user_item = {}
     
@@ -16,6 +17,7 @@ def create_users_json(data):
     
     return user_item
 
+'''Utility function for creating a json file for the items' names [Aesthetic]'''
 def create_item_json(data):
     items = {}
     
@@ -30,15 +32,13 @@ def create_item_json(data):
     return items
 
 
-# (b) Implement the user-based collaborative filtering approach, using the Pearson correlation function for computing similarities between users
-
-# Get common items between 2 users
+'''Get common items between 2 users'''
 def get_common_items(user_item_dict, user1 ,user2):
     return set(user_item_dict[user1].keys()) & set(user_item_dict[user2].keys())
 
 
-# Compute similarity between two users with Pearson's
-def compute_similarity(user_item_dict, x, y):
+'''Compute similarity between two users with Pearson's'''
+def compute_pearson_similarity(user_item_dict, x, y):
     common_items = get_common_items(user_item_dict, x, y)
     if len(common_items) > 0:
         
@@ -50,23 +50,44 @@ def compute_similarity(user_item_dict, x, y):
         den_y = math.fsum((user_item_dict[y][item] - mean_y)**2 for item in common_items)
         
         if den_x==0 or den_y==0:
-            return 0 
+            return None
         
         corr_coeff = num / (math.sqrt(den_x) * math.sqrt(den_y))
         return corr_coeff
     
     else:
         return 0
+    
+    
+'''Compute spearman similarity'''
+def compute_spearman_similarity(user_item_dict, x, y):
+    common_items = set(user_item_dict[x].keys()) & set(user_item_dict[y].keys())
+    n = len(common_items)
+    if n > 0:
+        # Get the ranks for each user
+        ranked_x = [user_item_dict[x][item] for item in common_items]
+        ranked_y = [user_item_dict[y][item] for item in common_items]
         
+        # Compute the difference in ranks for each pair of items in common
+        differences = [ranked_x[i] - ranked_y[i] for i in range(n)]
+        squared_differences = [diff**2 for diff in differences]
+        sum_squared_differences = sum(squared_differences)
 
+        
+        # Compute the Spearman correlation coefficient
+        spearman_corr_coeff = 1 - (6 * sum_squared_differences) / (n * (n**2 - 1))
+        return spearman_corr_coeff
+    else:
+        return 0
+      
 
-# Compute similarities for all the users
+'''Compute similarities for all the users [not used, just for testing]'''
 def compute_all_users_similiraties(user_item_dict):
     similarities = {}
     for user1 in user_item_dict:
         for user2 in user_item_dict:
             if user1 != user2:
-                similarity = compute_similarity(user_item_dict, user1, user2)
+                similarity = compute_pearson_similarity(user_item_dict, user1, user2)
                 
                 if user1 not in similarities:
                     similarities[user1] = {}
@@ -76,16 +97,20 @@ def compute_all_users_similiraties(user_item_dict):
     return similarities
 
 
-# Compute all similarities for just one user
+'''Compute all similarities for just one user'''
 def compute_user_similarities(user_item_dict, user1):
     similarities = {}
     for user2 in user_item_dict:
         if user1 != user2:
-            similarity = compute_similarity(user_item_dict, user1, user2)
-            similarities[user2] = similarity
+            similarity = compute_pearson_similarity(user_item_dict, user1, user2)
+            if similarity == None:
+                continue
+            else: 
+                similarities[user2] = similarity
     return similarities
 
-# compute the items prediction from a list of similar users                
+
+'''Compute the items prediction from a list of similar users'''                
 def compute_items_prediction(user_item_dict, user1, similar_users):
     pred = {}
     mean_1 = 0
@@ -104,7 +129,7 @@ def compute_items_prediction(user_item_dict, user1, similar_users):
     return pred
         
 
-# Compute the prediction for a single item
+'''Compute the prediction for a single item based on the similar users'''
 def compute_prediction(user_item_dict, a, item, similar_users):
     num = 0
     den = 0
@@ -115,7 +140,7 @@ def compute_prediction(user_item_dict, a, item, similar_users):
         if item in user_item_dict[b]:
             set += 1
             mean_b = sum(user_item_dict[b][i] for i in user_item_dict[b].keys()) / len(user_item_dict[b].keys())
-            similarity = compute_similarity(user_item_dict, a, b)
+            similarity = compute_pearson_similarity(user_item_dict, a, b)
             num += (similarity * (user_item_dict[b][item] - mean_b))
             den += similarity
     
@@ -128,13 +153,14 @@ def compute_prediction(user_item_dict, a, item, similar_users):
     
     return prediction   
              
-     
+''' 
+Json creation
+# Reading the two data files [u.data], [u.item]
 data_file = "ml-100k/u.data"
 item_file = "ml-100k/u.item"
 
 json_users = create_users_json(data_file)
 json_items = create_item_json(item_file)
-
 
 with open('user_item.json', 'w') as json_file:
     json.dump(json_users, json_file, indent=4)
@@ -144,15 +170,26 @@ print(f"JSON created from file: {data_file}")
 with open('item.json', 'w') as json_file:
     json.dump(json_items, json_file, indent=4)
     
-print(f"JSON created from file: {item_file}")
+print(f"JSON created from file: {item_file}\n")
+'''
 
+# Json reading
+with open('user_item.json', 'r') as json_file:
+    json_users = json.load(json_file)
+    
+with open('item.json', 'r') as json_file:
+    json_items = json.load(json_file)
 
-similarities = compute_user_similarities(json_users, 1)
+user = "9"
+user_2 = "7"
+ 
+similarities = compute_user_similarities(json_users, user)
+# Sorting and extracting the top ten user and items
 sort_sim = dict(sorted(similarities.items(), key=lambda item: item[1], reverse=True))
 top_sim = list(sort_sim.keys())[:30]
 top_ten_sim = list(sort_sim.keys())[:10]
 top_items = dict()
-top_items = compute_items_prediction(json_users, 196, top_sim)
+top_items = compute_items_prediction(json_users, user, top_sim)
 sort_items = dict(sorted(top_items.items(), key=lambda item: item[1], reverse=True))
 top_ten_items_id = list(sort_items.keys())[:10]
 top_ten_items_name = []
@@ -162,19 +199,17 @@ for item_id in top_ten_items_id:
         if(id == item_id):
             top_ten_items_name.append(name)
   
-print(top_ten_sim)
+print(f"Top ten users similarities for user {user}: {top_ten_sim}\n")
 i = 1
+print(f"Top ten movies recommendations for user {user}:\n")
 for name in top_ten_items_name:
     print(f"{i}: {name}")
     i += 1
-# for sim in top_ten_sim:
-#     print(f"{sim} : {top_ten_sim[sim]}")
-# items_predicted = compute_items_prediction(json_users, 196)
-# sort_item = dict(sorted(items_predicted.items(), key=lambda item: item[1], reverse=True))
-# print(json.dumps(sort_item, indent=4))
-# top_ten_items = list(sort_item.keys())[:10]
-# for item in top_ten_items:
-#     print(f"{item} : {sort_item[item]}")
+
+print(f"\nComputing Pearson's and Spearman's correlation coefficents for users: [{user}, {user_2}]\n")
+print(f"\tPearson: {compute_pearson_similarity(json_users, user, user_2)}")
+print(f"\tSpearman: {compute_spearman_similarity(json_users, user, user_2)}\n")
+
     
 
  
