@@ -79,7 +79,7 @@ def compute_spearman_similarity(user_item_dict, x, y):
         return spearman_corr_coeff
     else:
         return 0
-      
+     
 
 '''Compute similarities for all the users [not used, just for testing]'''
 def compute_all_users_similiraties(user_item_dict):
@@ -189,6 +189,7 @@ sort_sim = dict(sorted(similarities.items(), key=lambda item: item[1], reverse=T
 top_sim = list(sort_sim.keys())[:30]
 top_ten_sim = list(sort_sim.keys())[:10]
 top_items = dict()
+# Compute item pred. between a user and his 30 most similar users
 top_items = compute_items_prediction(json_users, user, top_sim)
 sort_items = dict(sorted(top_items.items(), key=lambda item: item[1], reverse=True))
 top_ten_items_id = list(sort_items.keys())[:10]
