@@ -28,18 +28,14 @@ def compute_average_aggregation(group_user_item):
      
 def compute_leastMisery_aggregation(group_user_item):
     least = {}
-    for user, ratings in group_user_item.items():
+    for ratings in group_user_item.values():
         for item, rating in ratings.items():
-            if item not in least:
+            if item not in least or rating < least[item]:
                 least[item] = rating
-            else:
-                if least[item] > rating:
-                    least[item] = rating
-    
-    sorted_item_least = dict(sorted(least.items(), key=lambda x: x[1], reverse=True))
-    
-    return sorted_item_least           
-            
+                
+    sorted_item_least = dict(sorted(least.items(), key=lambda x: x[1], reverse=True)) 
+    return sorted_item_least     
+           
 '''Create a group of 3 users, randomly'''
 def create_group(user_item_dict, size):
     members = random.sample(list(user_item_dict.keys()), size)
