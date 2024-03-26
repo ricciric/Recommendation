@@ -76,6 +76,7 @@ def compute_group_user_pred(user_item_dict, user_group):
 
 '''User's satisfaction is equal to the sum of the recommendations ratings divided by the individual user's ratings'''
 def compute_user_sat(group, rec, user):
+    # Cerca il problema qui
     sorted_user_rec = sorted(group[user].items(), key=lambda x: x[1], reverse=True)
     top_items = sorted_user_rec[:50]
     user_list_sat = sum(score for _, score in sorted_user_rec[:50])  
