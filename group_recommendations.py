@@ -1,6 +1,6 @@
 import random
 from recommendations import *
-import math
+import numpy as np
 import json
 
 '''
@@ -30,8 +30,11 @@ def compute_leastMisery_aggregation(group_user_item):
     least = {}
     for users in group_user_item.values():
         for item, rating in users.items():
-            if item not in least or rating < least[item]:
+            if item not in least:
                 least[item] = rating
+            else:
+                if least[item] > rating:
+                    least[item] = rating
                 
     sorted_item_least = dict(sorted(least.items(), key=lambda x: x[1], reverse=True)) 
     return sorted_item_least     
@@ -74,9 +77,12 @@ def compute_group_user_pred(user_item_dict, user_group):
 '''User's satisfaction is equal to the sum of the recommendations ratings divided by the individual user's ratings'''
 def compute_user_sat(group, rec, user):
     sorted_user_rec = sorted(group[user].items(), key=lambda x: x[1], reverse=True)
+    top_items = sorted_user_rec[:50]
     user_list_sat = sum(score for _, score in sorted_user_rec[:50])  
-    sorted_group_rec = sorted(rec.items(), key=lambda x: x[1], reverse=True)
-    group_list_sat = sum(score for item, score in sorted_group_rec[:50] if item in group[user])
+    group_list_sat = 0
+    for item, score in rec.items():
+        if item in top_items:
+            group_list_sat += score
     
     user_sat = group_list_sat/user_list_sat
     return user_sat
@@ -117,13 +123,12 @@ with open('item.json', 'r') as json_file:
     
 group_choice = create_group(json_users, 3)
 print(group_choice)
-z = 0
 
-for user_1 in group_choice:
-    user_2 = group_choice[0]
-    if user_1 != user_2:
-        sim = compute_pearson_similarity(json_users, user_1, user_2)
-        print(f"sim {user_1}, {user_2} = {sim}")
+# for user_1 in group_choice:
+#     user_2 = group_choice[0]
+#     if user_1 != user_2:
+#         sim = compute_pearson_similarity(json_users, user_1, user_2)
+#         print(f"sim {user_1}, {user_2} = {sim}")
     
         
         
@@ -132,33 +137,33 @@ avg_group = compute_average_aggregation(group)
 least_group = compute_leastMisery_aggregation(group)
 iterations = 3
 alpha = 0
-for j in range(iterations):
-    balanced_group = weighted_recommendations(group, alpha)
-    print(f"\nALPHA VALUE ITER_{j} = {alpha}")
-    alpha = compute_group_dis(group, balanced_group)
-    i=1
-    top_ten_items_balanced = list(balanced_group.keys())[:30]
-    print(f"\nWeighted recommendations based on group satisfaction and disagreement [iteration_{j}]:\n")
-    for item in top_ten_items_balanced:
-        if item in json_items:
-            print(f"{i}: {json_items[item]}")
-        i += 1
+# for j in range(iterations):
+#     balanced_group = weighted_recommendations(group, alpha)
+#     print(f"\nALPHA VALUE ITER_{j} = {alpha}")
+#     alpha = compute_group_dis(group, balanced_group)
+#     i=1
+#     top_ten_items_balanced = list(balanced_group.keys())[:30]
+#     print(f"\nWeighted recommendations based on group satisfaction and disagreement [iteration_{j}]:\n")
+#     for item in top_ten_items_balanced:
+#         if item in json_items:
+#             print(f"{i}: {json_items[item]}")
+#         i += 1
 
-# i=1
-# top_ten_items_id_avg = list(avg_group.keys())[:10]
-# print("Average group ratings:\n")
-# for item in top_ten_items_id_avg:
-#     if item in json_items:
-#         print(f"{i}: {json_items[item]}")
-#     i += 1
+i=1
+top_ten_items_id_avg = list(avg_group.keys())[:10]
+print("Average group ratings:\n")
+for item in top_ten_items_id_avg:
+    if item in json_items:
+        print(f"{i}: {json_items[item]}")
+    i += 1
 
-# i=1
-# top_ten_items_id_least = list(least_group.keys())[:10]
-# print("\nLeast Misery group ratings:\n")
-# for item in top_ten_items_id_least:
-#     if item in json_items:
-#         print(f"{i}: {json_items[item]}")
-#     i += 1
+i=1
+top_ten_items_id_least = list(least_group.keys())[:10]
+print("\nLeast Misery group ratings:\n")
+for item in top_ten_items_id_least:
+    if item in json_items:
+        print(f"{i}: {json_items[item]}")
+    i += 1
             
 # i=1
 # top_ten_items_balanced = list(balanced_group.keys())[:10]
