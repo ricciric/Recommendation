@@ -56,7 +56,7 @@ def compute_pearson_similarity(user_item_dict, x, y):
         return corr_coeff
     
     else:
-        return 0
+        return None
     
     
 '''Compute spearman similarity'''
@@ -180,13 +180,13 @@ with open('user_item.json', 'r') as json_file:
 with open('item.json', 'r') as json_file:
     json_items = json.load(json_file)
 
-user = "9"
-user_2 = "7"
+user = "100"
+user_2 = "19"
  
 similarities = compute_user_similarities(json_users, user)
 # Sorting and extracting the top ten user and items
 sort_sim = dict(sorted(similarities.items(), key=lambda item: item[1], reverse=True))
-top_sim = list(sort_sim.keys())[:30]
+top_sim = list(sort_sim.keys())[:100]
 top_ten_sim = list(sort_sim.keys())[:10]
 top_items = dict()
 # Compute item pred. between a user and his 30 most similar users

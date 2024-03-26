@@ -28,17 +28,34 @@ def compute_average_aggregation(group_user_item):
      
 def compute_leastMisery_aggregation(group_user_item):
     least = {}
-    for ratings in group_user_item.values():
-        for item, rating in ratings.items():
+    for users in group_user_item.values():
+        for item, rating in users.items():
             if item not in least or rating < least[item]:
                 least[item] = rating
                 
     sorted_item_least = dict(sorted(least.items(), key=lambda x: x[1], reverse=True)) 
     return sorted_item_least     
            
-'''Create a group of 3 users, randomly'''
+'''Create a group of (size) users, randomly'''
 def create_group(user_item_dict, size):
-    members = random.sample(list(user_item_dict.keys()), size)
+    members = []
+    added_members_sim = 0
+    added_members_nosim = 0
+    user_1 = random.choice(list(user_item_dict.keys()))
+    members.append(user_1)
+    while len(members) < size:
+            user_2 = random.choice(list(user_item_dict.keys()))
+            sim = compute_pearson_similarity(user_item_dict, user_1, user_2)
+            if sim != None:
+                if added_members_sim <= added_members_nosim:
+                    if sim > 0.5:
+                        added_members_sim += 1
+                        members.append(user_2)
+                else:
+                    if sim < -0.5:
+                        added_members_nosim += 1
+                        members.append(user_2)
+                
     return members
 
 
@@ -48,53 +65,48 @@ def compute_group_user_pred(user_item_dict, user_group):
     for user in user_group:
         similarities = compute_user_similarities(user_item_dict, user)
         sort_sim = dict(sorted(similarities.items(), key=lambda item: item[1], reverse=True))
-        top_sim = list(sort_sim.keys())[:30]
-        user_group_copy = user_group[:]
-        user_group_copy.remove(user)
-        group[user] = compute_items_prediction(user_item_dict, user, top_sim + user_group_copy)
+        top_sim = list(sort_sim.keys())[:100]
+
+        group[user] = compute_items_prediction(user_item_dict, user, top_sim)
     
     return group
 
 '''User's satisfaction is equal to the sum of the recommendations ratings divided by the individual user's ratings'''
-def compute_user_sat(group, avg_rec, user):
-    user_total_rating = 0
-    group_total_rating = sum(avg_rec[item] for item in avg_rec)
-    for user_1, ratings in group.items():
-        for item, rating in ratings.items():
-            if user_1 == user:
-                user_total_rating += rating
-         
-    return group_total_rating/user_total_rating
+def compute_user_sat(group, rec, user):
+    rec_ratings = sum(rec[item] for item in rec.keys())
+    user_ratings = sum(group[user][item] for item in group[user])
+    sat = rec_ratings/user_ratings
+    min_rating = min(rec[item] for item in rec.keys())
+    max_rating = max(rec[item] for item in rec.keys())
+    norm = (sat - min_rating) / (max_rating - min_rating) 
+    return norm
     
-    
-def compute_group_satisfaction(group, avg_rec):
+def compute_group_satisfaction(group, rec):
     tot = 0
-    max_user_sat = 0
     for user in group.keys():
-        user_sat = compute_user_sat(group, avg_rec, user)
-        if user_sat>max_user_sat:
-            max_user_sat = user_sat
+        user_sat = compute_user_sat(group, rec, user)
         tot += user_sat
 
-    return (tot/len(group))/max_user_sat
+    group_sat = tot/len(group)
+    return group_sat
     
-def compute_group_dis(group, avg_rec):
+def compute_group_dis(group, rec):
     max = 0
-    min = compute_user_sat(group, avg_rec, next(iter(group)))
+    min = compute_user_sat(group, rec, next(iter(group)))
     for user in group.keys():
-        user_sat = compute_user_sat(group, avg_rec, user)
+        user_sat = compute_user_sat(group, rec, user)
+        print(f"******* USER {user} SAT : {user_sat} ********")
         if user_sat > max:
             max = user_sat
         if user_sat < min:
             min = user_sat
-    return (max - min)/max
+            
+    return (max - min)
  
-def weighted_recommendations(group, avg_rec, least_rec):
-    alpha = compute_group_dis(group, avg_rec)
-    group_sat = compute_group_satisfaction(group, avg_rec)
-    group_dis = compute_group_dis(group, avg_rec)
+def weighted_recommendations(group, alpha):
     weighted_recommendations = {}
-    
+    avg_rec = compute_average_aggregation(group)
+    least_rec = compute_leastMisery_aggregation(group)
     for user, ratings in group.items():
         for item, rating in ratings.items():
             # Formula took from Sequential group recommendations based on satisfaction and disagreement scores article
@@ -112,33 +124,54 @@ with open('item.json', 'r') as json_file:
     json_items = json.load(json_file)
     
 group_choice = create_group(json_users, 3)
-# print(group_choice)
+print(group_choice)
+z = 0
+
+for user_1 in group_choice:
+    user_2 = group_choice[0]
+    if user_1 != user_2:
+        sim = compute_pearson_similarity(json_users, user_1, user_2)
+        print(f"sim {user_1}, {user_2} = {sim}")
+        
+        
 group = compute_group_user_pred(json_users, group_choice)
 avg_group = compute_average_aggregation(group)
 least_group = compute_leastMisery_aggregation(group)
-balanced_group = weighted_recommendations(group, avg_group, least_group)
+iterations = 3
+alpha = 0
+for j in range(iterations):
+    balanced_group = weighted_recommendations(group, alpha)
+    print(f"\nALPHA VALUE ITER_{j} = {alpha}")
+    alpha = compute_group_dis(group, balanced_group)
+    i=1
+    top_ten_items_balanced = list(balanced_group.keys())[:30]
+    print(f"\nWeighted recommendations based on group satisfaction and disagreement [iteration_{j}]:\n")
+    for item in top_ten_items_balanced:
+        if item in json_items:
+            print(f"{i}: {json_items[item]}")
+        i += 1
 
-i=1
-top_ten_items_id_avg = list(avg_group.keys())[:10]
-print("Average group ratings:\n")
-for item in top_ten_items_id_avg:
-    if item in json_items:
-        print(f"{i}: {json_items[item]}")
-    i += 1
+# i=1
+# top_ten_items_id_avg = list(avg_group.keys())[:10]
+# print("Average group ratings:\n")
+# for item in top_ten_items_id_avg:
+#     if item in json_items:
+#         print(f"{i}: {json_items[item]}")
+#     i += 1
 
-i=1
-top_ten_items_id_least = list(least_group.keys())[:10]
-print("\nLeast Misery group ratings:\n")
-for item in top_ten_items_id_least:
-    if item in json_items:
-        print(f"{i}: {json_items[item]}")
-    i += 1
+# i=1
+# top_ten_items_id_least = list(least_group.keys())[:10]
+# print("\nLeast Misery group ratings:\n")
+# for item in top_ten_items_id_least:
+#     if item in json_items:
+#         print(f"{i}: {json_items[item]}")
+#     i += 1
             
-i=1
-top_ten_items_balanced = list(balanced_group.keys())[:10]
-print("\nWeighted recommendations based on group satisfaction and disagreement:\n")
-for item in top_ten_items_balanced:
-    if item in json_items:
-        print(f"{i}: {json_items[item]}")
-    i += 1
+# i=1
+# top_ten_items_balanced = list(balanced_group.keys())[:10]
+# print("\nWeighted recommendations based on group satisfaction and disagreement:\n")
+# for item in top_ten_items_balanced:
+#     if item in json_items:
+#         print(f"{i}: {json_items[item]}")
+#     i += 1
 
