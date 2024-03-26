@@ -73,22 +73,14 @@ def compute_group_user_pred(user_item_dict, user_group):
 
 '''User's satisfaction is equal to the sum of the recommendations ratings divided by the individual user's ratings'''
 def compute_user_sat(group, rec, user):
-    rec_ratings = sum(rec[item] for item in rec.keys())
-    user_ratings = sum(group[user][item] for item in group[user])
-    sat = rec_ratings/user_ratings
-    min_rating = min(rec[item] for item in rec.keys())
-    max_rating = max(rec[item] for item in rec.keys())
-    norm = (sat - min_rating) / (max_rating - min_rating) 
-    return norm
+    sorted_user_rec = sorted(group[user].items(), key=lambda x: x[1], reverse=True)
+    user_list_sat = sum(score for _, score in sorted_user_rec[:50])  
+    sorted_group_rec = sorted(rec.items(), key=lambda x: x[1], reverse=True)
+    group_list_sat = sum(score for item, score in sorted_group_rec[:50] if item in group[user])
     
-def compute_group_satisfaction(group, rec):
-    tot = 0
-    for user in group.keys():
-        user_sat = compute_user_sat(group, rec, user)
-        tot += user_sat
-
-    group_sat = tot/len(group)
-    return group_sat
+    user_sat = group_list_sat/user_list_sat
+    return user_sat
+    
     
 def compute_group_dis(group, rec):
     max = 0
@@ -132,6 +124,7 @@ for user_1 in group_choice:
     if user_1 != user_2:
         sim = compute_pearson_similarity(json_users, user_1, user_2)
         print(f"sim {user_1}, {user_2} = {sim}")
+    
         
         
 group = compute_group_user_pred(json_users, group_choice)
