@@ -188,7 +188,6 @@ similarities = compute_user_similarities(json_users, user)
 sort_sim = dict(sorted(similarities.items(), key=lambda item: item[1], reverse=True))
 top_sim = list(sort_sim.keys())[:100]
 top_ten_sim = list(sort_sim.keys())[:10]
-top_items = dict()
 # Compute item pred. between a user and his 30 most similar users
 top_items = compute_items_prediction(json_users, user, top_sim)
 sort_items = dict(sorted(top_items.items(), key=lambda item: item[1], reverse=True))
