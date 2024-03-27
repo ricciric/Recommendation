@@ -116,6 +116,8 @@ def compute_user_sat(group, rec, user, k=10):
         group_list_sat += score
         i+=1
         
+    
+
     user_sat = group_list_sat/user_list_sat
     return user_sat
     
