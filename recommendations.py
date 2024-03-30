@@ -111,20 +111,36 @@ def compute_user_similarities(user_item_dict, user1):
 
 
 '''Compute the items prediction from a list of similar users'''                
+# def compute_items_prediction(user_item_dict, user1, similar_users):
+#     pred = {}
+    
+#     items_user1 = set(user_item_dict[user1].keys())
+    
+#     for user2 in similar_users:
+#         if user2 != user1:
+#             items_user2 = set(user_item_dict[user2].keys())
+#             unrated_items = items_user2 - items_user1
+
+#             for item in unrated_items:
+#                 if item not in pred:
+#                     pred[item] = compute_prediction(user_item_dict, user1, item, similar_users)
+    
+#     for item in items_user1:
+#         pred[item] = user_item_dict[user1][item]
+    
+#     return pred
+
 def compute_items_prediction(user_item_dict, user1, similar_users):
     pred = {}
-    mean_1 = 0
-    
-    items_user1 = set(user_item_dict[user1].keys())
-    mean_1 = math.fsum(user_item_dict[user1][item] for item in user_item_dict[user1].keys()) / len(user_item_dict[user1].keys())
-    
-    for user2 in similar_users:
-        items_user2 = set(user_item_dict[user2].keys())
-        unrated_items = items_user2 - items_user1
-        
-        for item in unrated_items:
-            if item not in pred.keys():
-                pred[item] = compute_prediction(user_item_dict, user1, item, similar_users)
+
+    # Get all items rated by any user in the group
+    all_items = set().union(*[set(user_item_dict[user].keys()) for user in similar_users])
+
+    for item in all_items:
+        if item not in user_item_dict[user1]:
+            pred[item] = compute_prediction(user_item_dict, user1, item, similar_users)
+        else:
+            pred[item] = user_item_dict[user1][item]
     
     return pred
         
@@ -145,10 +161,11 @@ def compute_prediction(user_item_dict, a, item, similar_users):
             den += similarity
     
     if den == 0:
-        return mean_a
+        return 0
       
     else:
-        prediction = mean_a + (num/den)     
+        prediction = mean_a + (num/den)    
+     
     prediction = min(5, max(1, prediction))
     
     return prediction   
@@ -186,7 +203,7 @@ user_2 = "19"
 similarities = compute_user_similarities(json_users, user)
 # Sorting and extracting the top ten user and items
 sort_sim = dict(sorted(similarities.items(), key=lambda item: item[1], reverse=True))
-top_sim = list(sort_sim.keys())[:100]
+top_sim = list(sort_sim.keys())[:50]
 top_ten_sim = list(sort_sim.keys())[:10]
 # Compute item pred. between a user and his 30 most similar users
 top_items = compute_items_prediction(json_users, user, top_sim)
