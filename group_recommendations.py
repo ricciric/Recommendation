@@ -45,7 +45,11 @@ def leastMisery_aggregation(ratings):
                         least[item] = ratings[user][item]
     else:  # Input is of the form {item: rating}
         for item in ratings.keys():
-            least[item] = ratings[item]
+            if item not in least:
+                least[item] = ratings[item]
+            else:
+                if least[item] > ratings[item]:
+                    least[item] = ratings[item]
                 
     sorted_item_least = dict(sorted(least.items(), key=lambda x: x[1], reverse=True)) 
     return sorted_item_least   
@@ -174,20 +178,7 @@ def compute_group_sat(group, rec):
         group_sat += user_sat
     
     return group_sat/len(group.keys())
- 
- 
-def weighted_recommendations(group, alpha):
-    weighted_recommendations = {}
-    avg_rec = average_aggregation(group)
-    least_rec = leastMisery_aggregation(group)
-    for user, ratings in group.items():
-        for item, rating in ratings.items():
-            # Formula took from Sequential group recommendations based on satisfaction and disagreement scores article
-            weighted_recommendations[item] = (1-alpha)*avg_rec[item]+alpha*least_rec[item] 
-    
-    
-    sort = dict(sorted(weighted_recommendations.items(), key=lambda x: x[1], reverse=True))
-    return sort
+
 
 # group of users and items, reccomendation (aggregation), number of items in the returned list
 def sequential_recommendations(group, rec, k=10):
@@ -217,52 +208,7 @@ def sequential_recommendations(group, rec, k=10):
     
     return candidate_set
 
-# DEPRECATED, hyprid_2 is the new working version
-# def sequential_hybrid_recommendations(group, iterations, size=10):
-#     rec = {}
-#     group_sat = 0
-#     overall_group_sat = 0
-#     items = {}
-#     group_items_set = set()
-#     # Compute all singular user recommendation
-#     for user, _ in group.items():
-#         for item, rating in _.items():
-#             items[item] = rating
-#     # Aggregate eveythin in a single list
-#     avg_agg = average_aggregation(items)
-#     least_agg = leastMisery_aggregation(items)
-    
-#     # Start the sequential part
-#     for i in range(1, iterations + 1):
-#         if i == 1:
-#             alpha = 0
-#             for item in items:
-#                 rec[item] = (1-alpha)*avg_agg[item]+alpha*least_agg[item]
-#         else:
-#             avg_agg = average_aggregation(rec)
-#             least_agg = leastMisery_aggregation(rec)
-#             alpha = float(compute_group_dis(group, rec, i))
-        
-#         for item in items:
-#             rec[item] = (1-alpha)*avg_agg[item]+alpha*least_agg[item]
-
-#         sorted_rec = {k: v for k, v in sorted(rec.items(), key=lambda item: item[1], reverse=True)}
-#         group_sat = compute_group_sat(group, rec)
-#         overall_group_sat = compute_overall_group_sat(group, rec, i)
-#         print("\n****************** VALUES ******************")
-#         print(f"Alpha value: {float(alpha)}")
-#         print(f"Group satisfaction: {group_sat}")
-#         print(f"Overall group satisfaction: {overall_group_sat}")
-#         for user in group.keys():
-#             user_sat = compute_user_sat(group, rec, user)
-#             print(f"User satisfaction for user {user}: {user_sat}")
-#         print("\n********************************************")
-#         print_top_ten(sorted_rec, json_items, 50)
-        
-#         # Compute and print the user satisfaction for each user
-        
-#     return sorted_rec     
-        
+'''Compute the items prediction from a list of similar users'''          
 def compute_items_prediction_sequential(user_item_dict, user1, similar_users, recommendations):
     pred = {}
 
@@ -329,7 +275,7 @@ def hybrid_2(user_item_dict, group, iterations):
         previous_rec += print_top_ten(recommendations, json_items, 10)
     
     iterations = range(1, iterations + 1)
-    fig = plt.figure(facecolor='lightgrey')    
+    fig = plt.figure(facecolor='white')    
     ax = fig.add_subplot()
     ax.plot(iterations, alpha_values, marker='o')
     ax.set_title('Alpha Values over Iterations')
@@ -340,7 +286,7 @@ def hybrid_2(user_item_dict, group, iterations):
     ax.set_facecolor('white')
     ax.set_ylim(0, 1)
     ax.set_xlim(1, iterations[-1])
-    plt.grid(True)
+    plt.grid(False)
     plt.tight_layout()
     plt.show()
         
@@ -352,7 +298,7 @@ def print_top_ten(rec, items, size=10):
     top_ten_items_id = list(rec.keys())[:size]
     for item in top_ten_items_id:
         if item in items:
-            print(f"{i}: {items[item]}, score: {rec[item]}")
+            print(f"{i}: {items[item]}")
         i += 1
     return top_ten_items_id
 
@@ -370,29 +316,33 @@ group = compute_group_user_pred(json_users, group_choice)
 avg_group = average_aggregation(group)
 least_group = leastMisery_aggregation(group)
 borda_group = bordaCount_aggregation(group)
-hybrid_2(json_users, group, 5)
-# hybrid_group = sequential_hybrid_recommendations(group, 3)
-
+# hybrid_2(json_users, group, 5)
 # sequential_group = sequential_recommendations(group, avg_group)
 
-# print("\nBorda Count aggregation group ratings:\n")
-# print_top_ten(borda_group, json_items)
+top_ten_items_id_borda = list(borda_group.keys())[:10]
+for user in group.keys():
+        user_sat = compute_user_sat(group, borda_group, user)
+        print(f"User satisfaction for user {user}: {user_sat}")
+print("\nBorda Count aggregation group ratings:\n")
+print_top_ten(borda_group, json_items)
 
-# i=1
-# top_ten_items_id_avg = list(avg_group.keys())[:50]
-# print("\nAverage group ratings:\n")
-# print_top_ten(avg_group, json_items)
+i=1
+top_ten_items_id_avg = list(avg_group.keys())[:10]
+for user in group.keys():
+        user_sat = compute_user_sat(group, avg_group, user)
+        print(f"User satisfaction for user {user}: {user_sat}")
+print("\nAverage group ratings:\n")
+print_top_ten(avg_group, json_items)
 
-# i=1
-# top_ten_items_id_least = list(least_group.keys())[:10]
-# print("\nLeast Misery group ratings:\n")
-# print_top_ten(least_group, json_items)
+i=1
+top_ten_items_id_least = list(least_group.keys())[:10]
+for user in group.keys():
+        user_sat = compute_user_sat(group, least_group, user)
+        print(f"User satisfaction for user {user}: {user_sat}")
+print("\nLeast Misery group ratings:\n")
+print_top_ten(least_group, json_items)
             
-# i=1
-# top_ten_items_balanced = list(balanced_group.keys())[:10]
-# print("\nWeighted recommendations based on group satisfaction and disagreement:\n")
-# print_top_ten(balanced_group, json_items)
-
+            
 # i=1
 # print("\nSequential recommendantion ratings:\n")
 # for item in sequential_group:

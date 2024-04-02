@@ -68,14 +68,17 @@ def compute_spearman_similarity(user_item_dict, x, y):
         ranked_x = [user_item_dict[x][item] for item in common_items]
         ranked_y = [user_item_dict[y][item] for item in common_items]
         
-        # Compute the difference in ranks for each pair of items in common
-        differences = [ranked_x[i] - ranked_y[i] for i in range(n)]
-        squared_differences = [diff**2 for diff in differences]
+        # Compute the rank differences for each pair of items in common
+        differences = [a - b for a, b in zip(ranked_x, ranked_y)]
+        squared_differences = [diff ** 2 for diff in differences]
         sum_squared_differences = sum(squared_differences)
-
         
         # Compute the Spearman correlation coefficient
-        spearman_corr_coeff = 1 - (6 * sum_squared_differences) / (n * (n**2 - 1))
+        den = (n * (n ** 2 - 1))
+        if den == 0:
+            return None
+        else:
+            spearman_corr_coeff = 1 - (6 * sum_squared_differences) / (n * (n ** 2 - 1))
         return spearman_corr_coeff
     else:
         return 0
@@ -102,7 +105,7 @@ def compute_user_similarities(user_item_dict, user1):
     similarities = {}
     for user2 in user_item_dict:
         if user1 != user2:
-            similarity = compute_pearson_similarity(user_item_dict, user1, user2)
+            similarity = compute_spearman_similarity(user_item_dict, user1, user2)
             if similarity == None:
                 continue
             else: 
@@ -111,25 +114,6 @@ def compute_user_similarities(user_item_dict, user1):
 
 
 '''Compute the items prediction from a list of similar users'''                
-# def compute_items_prediction(user_item_dict, user1, similar_users):
-#     pred = {}
-    
-#     items_user1 = set(user_item_dict[user1].keys())
-    
-#     for user2 in similar_users:
-#         if user2 != user1:
-#             items_user2 = set(user_item_dict[user2].keys())
-#             unrated_items = items_user2 - items_user1
-
-#             for item in unrated_items:
-#                 if item not in pred:
-#                     pred[item] = compute_prediction(user_item_dict, user1, item, similar_users)
-    
-#     for item in items_user1:
-#         pred[item] = user_item_dict[user1][item]
-    
-#     return pred
-
 def compute_items_prediction(user_item_dict, user1, similar_users):
     pred = {}
 
@@ -166,8 +150,7 @@ def compute_prediction(user_item_dict, a, item, similar_users):
     else:
         prediction = mean_a + (num/den)    
      
-    prediction = min(5, max(1, prediction))
-    
+    norm = (prediction - 1) / (5 - 1)     
     return prediction   
              
 ''' 
